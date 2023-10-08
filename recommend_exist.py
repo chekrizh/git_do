@@ -1,8 +1,16 @@
 from fastapi import FastAPI
 import pandas as pd
 import gc
+import uvicorn
 # coding: utf-8
 
+
+app = FastAPI()
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host='0.0.0.0', port=8000)
+    
 df2023 = pd.read_csv('light_2023.csv')
 
 mask = ['article_id', 'Товарные Категории']
@@ -69,9 +77,6 @@ top_articles_dict = top_articles.set_index('Category').apply(lambda row: list(ro
 
 del replaced_rows_df, recom_cstegories
 gc.collect()
-
-
-app = FastAPI()
 
 
 @app.get("/")
