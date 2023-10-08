@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import gc
 import uvicorn
@@ -7,10 +8,17 @@ import uvicorn
 
 app = FastAPI()
 
+origins = ['*']
 
-if __name__ == "__main__":
-    uvicorn.run(app, host='0.0.0.0', port=8000)
-    
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 df2023 = pd.read_csv('light_2023.csv')
 
 mask = ['article_id', 'Товарные Категории']
@@ -91,3 +99,7 @@ def recommend_for(article):
     answer = {"Recommendations for {} ({})".format(article, art_cat):
                   {_: top_articles_dict[_] for _ in recommended_categories}}
     return answer
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host='0.0.0.0', port=8000)
