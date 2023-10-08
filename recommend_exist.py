@@ -1,22 +1,13 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import os
+import http.server
+import socketserver
+import urllib.parse
+from http import HTTPStatus
 import pandas as pd
 import gc
-import uvicorn
+
+
 # coding: utf-8
-
-
-app = FastAPI()
-
-origins = ['*']
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 df2023 = pd.read_csv('light_2023.csv')
@@ -87,12 +78,6 @@ del replaced_rows_df, recom_cstegories
 gc.collect()
 
 
-@app.get("/")
-def read_root():
-    return '''You're right there. Use the "recommend_for" method and pass your article.'''
-
-
-@app.get("/recommend_for")
 def recommend_for(article):
     art_cat = articles[article]
     recommended_categories = recom_cstegories_dict[art_cat]
@@ -101,5 +86,47 @@ def recommend_for(article):
     return answer
 
 
-if __name__ == "__main__":
-    uvicorn.run(app, host='0.0.0.0', port=8000)
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+
+        # Parse the URL and the query parameters
+        parsed_path = urllib.parse.urlparse(self.path)
+        query_params = urllib.parse.parse_qs(parsed_path.query)
+
+        article = query_params.get('article', [''])[0]  # get the first 'article' parameter, default to ''
+
+        # Construct a message
+        if article:
+            message = str(recommend_for(article))
+        else:
+            message = 'Please provide any article'
+
+        # Send response
+        self.send_response(HTTPStatus.OK)
+        self.send_header('Content-Type', 'text/plain; charset=utf-8')  # Specify UTF-8 encoding
+        self.end_headers()
+        self.wfile.write(message.encode('utf-8'))
+
+
+port = int(os.getenv('PORT', 80))
+print('Listening on port %s' % (port))
+httpd = socketserver.TCPServer(('', port), Handler)
+httpd.serve_forever()
+
+#
+# @app.get("/")
+# def read_root():
+#     return '''You're right there. Use the "recommend_for" method and pass your article.'''
+#
+#
+# @app.get("/recommend_for")
+# def recommend_for(article):
+#     art_cat = articles[article]
+#     recommended_categories = recom_cstegories_dict[art_cat]
+#     answer = {"Recommendations for {} ({})".format(article, art_cat):
+#                   {_: top_articles_dict[_] for _ in recommended_categories}}
+#     return answer
+#
+#
+
+#%%
